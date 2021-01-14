@@ -15,13 +15,13 @@ from sklearn import preprocessing
 from sklearn.utils import shuffle
 from sklearn import metrics
 from sklearn.decomposition import SparsePCA, TruncatedSVD, FactorAnalysis, DictionaryLearning, FastICA, KernelPCA
-
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.cluster import KMeans, DBSCAN, MeanShift, estimate_bandwidth, AffinityPropagation, AgglomerativeClustering, FeatureAgglomeration
 from sklearn import cluster, covariance, manifold
 from skmultilearn.problem_transform import LabelPowerset
 from skmultilearn.cluster import MatrixLabelSpaceClusterer
 from skmultilearn.ensemble import LabelSpacePartitioningClassifier
+from sklearn.model_selection import GridSearchCV
 
 
 
@@ -46,15 +46,27 @@ df = shuffle(df, random_state = 1)
 X = df.tocsr()
 n_clusters = df_num_classes
 
-'''
+
 # K-Means
-model = KMeans(n_clusters=n_clusters, random_state=1, n_jobs=-1).fit(X)
+
+
+model = KMeans()
+param_grid =  [{'init': ["kmeans++", "random"],
+                'n_clusters': [n_clusters],
+                'max_iter': [5000],
+                'n_jobs': [-1],
+                'random_state': [1]}]
+model = GridSearchCV(model, param_grid=param_grid, n_jobs=-1).fit(X)
+model.best_estimator_
 pred = model.predict(X)
-'''
+
+model = KMeans(n_clusters=n_clusters, max_iter=5000, random_state=1, n_jobs=-1).fit(X)
+pred = model.predict(X)
+
 
 '''
 # DBSCAN
-model = DBSCAN(eps=0.078, min_samples=5, metric='euclidean',
+model = DBSCAN(eps=.1, min_samples=5, metric='euclidean',
                metric_params=None, algorithm='auto', leaf_size=30, p=None, n_jobs=None)
 pred = model.fit_predict(X)
 '''
@@ -77,8 +89,8 @@ pred = model.labels_
 '''
 
 # AglomerativeClustering
-model = AgglomerativeClustering(n_clusters = n_clusters, affinity = 'euclidean', linkage = 'ward')
-pred = model.fit_predict(X.toarray())
+model = AgglomerativeClustering(affinity = 'euclidean', linkage = 'single')
+pred = model.fit_predict(X)
 
 '''
 # FeatureAgglomeration
@@ -92,7 +104,7 @@ pred = model.fit_transform(X.toarray())
 '''
 
 # Evaluate
-Score = metrics.silhouette_score(X, model.labels_)
+Score = metrics.silhouette_score(X, pred)
 
 # Show
 X_plot = X.toarray()
@@ -105,13 +117,12 @@ sps.voronoi_plot_2d(sps.Voronoi(model.cluster_centers_))
 plt.scatter(X_plot[:, 0], X_plot[:, 1], c=pred, s=1, cmap='magma')
 plt.show()
 
-graph = dendrogram(linkage(X_plot, method = 'ward'))
+graph = dendrogram(linkage(X, method = 'single'))
 plt.title('Dendrogram')
 plt.xlabel('Data')
 plt.ylabel('Distância Euclidiana')
 
 plt.scatter(X_plot[:,0],X_plot[:,1], c=pred, cmap='rainbow')
-plt.show()
 
 # Classification
 
